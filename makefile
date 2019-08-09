@@ -26,5 +26,6 @@ $(OBJDIR)/%.o:src/%.c
 	$(CC) $(CFLAGS) -c $? -o $@ 
 
 clean:
-	@rm -f $(TARGET) $(wildcard *.o)
+	@rm -f $(BINDIR)/$(TARGET) $(wildcard *.o)
+	@rm -rf $(BINDIR)
 	@rm -rf $(OBJDIR) 
