@@ -14,10 +14,12 @@
 #define PORT 80
 
 #define HEADER_SIZE 256
+#define HEADER_COLOUR "\x1B[2m"
 #define HEADER_HTTP "HTTP/1.1"
 #define HEADER_HOST "Host: "
 #define HEADER_BREAK "\r\n"
 #define HEADER_ACCEPT "Accept: */*"
+
 
 int tcpRequest(requestHint_t *hint);
 int printResponse(int *sock, requestHint_t *hint);
@@ -57,7 +59,7 @@ int tcpRequest(requestHint_t *hint){
 int printResponse(int *sock, requestHint_t *hint){
 	int msgLen = 0;
 	bool msgCompleate = false;
-	char buff[128];
+	char buff[1024];
 
 	// Get message
 	while (!msgCompleate){
@@ -68,7 +70,7 @@ int printResponse(int *sock, requestHint_t *hint){
 		} 
 
 		// Check if hole message was recived 
-		if (msgLen > sizeof(buff)){
+		if (msgLen >= 1024){
 			msgCompleate = false;
 		} else {
 			msgCompleate = true;
@@ -182,7 +184,7 @@ int sendHeader(int *sock, requestHint_t *hint){
 
 	// Show sender header if not silenced
 	if (!hint->silence){
-		printf("%s",header);
+		printf(HEADER_COLOUR "%s\x1B[0m",header);
 	}
 
 	send(*sock, header, strlen(header), 0);
