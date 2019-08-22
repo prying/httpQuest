@@ -11,7 +11,12 @@
 
 #include "requestTypes.h"
 
-#define PORT 80
+#define HTTP_PORT 80
+#define HTTPS_PORT 443
+#define HTTP "http://"
+#define HTTPS "https://"
+#define PROT_HTTP 1
+#define PROT_HTTPS 2
 
 #define HEADER_SIZE 256
 #define HEADER_COLOUR "\x1B[2m"
@@ -20,17 +25,39 @@
 #define HEADER_BREAK "\r\n"
 #define HEADER_ACCEPT "Accept: */*"
 
+/* Todo: Implement SSL
+*/
 
 int tcpRequest(requestHint_t *hint);
 int printResponse(int *sock, requestHint_t *hint);
 int sendHeader(int *sock, requestHint_t *hint);
-int domainFormURL(char* buff, size_t size, char *url);
+int domainFormURL(char* buff, size_t n, char *url);
 int connectToServer(int *socket, char *URL, int port);
 char* ipToString(struct sockaddr_in *list);
+int removeProtocol(char **url);
 
 int tcpRequest(requestHint_t *hint){
 
 	int sock = 0;
+	int protocol;
+
+	// Setup/guess port
+	if (hint->immutable == false){
+		protocol = removeProtocol(&hint->url);
+		if (protocol == PROT_HTTP){
+			if (hint->port != HTTP_PORT)
+				printf("An attempt was made to fix the port for this request!\n"
+					"Port: %d\n", HTTP_PORT);
+			hint->port = HTTP_PORT;
+		}
+		if (protocol == PROT_HTTPS){
+			if (hint->port != HTTPS_PORT)
+				printf("An attempt was made to fix the port for this request!\n"
+					"Port: %d\n", HTTPS_PORT);
+			hint->port = HTTPS_PORT;
+		}
+	}
+
 	// Connect to server
 	if (connectToServer(&sock, hint->url, hint->port) != 1){
 		fprintf(stderr, "Failed to connect to server\n");
@@ -65,7 +92,7 @@ int printResponse(int *sock, requestHint_t *hint){
 	while (!msgCompleate){
 		msgLen = recv(*sock, buff, sizeof(buff), 0);
 		if (msgLen ==-1){
-			fprintf(stderr, "Somthing went wrong, no message\n");
+			fprintf(stderr, "\x1B[31mSomthing went wrong receiving message\x1B[0m\n");
 			return -1;
 		} 
 
@@ -124,7 +151,7 @@ int sendHeader(int *sock, requestHint_t *hint){
 	headerPos += lineLen;
 
 	// Add host
-	if (domainFormURL(host, sizeof(host), hint->url) != 1)
+	if (domainFormURL(host, sizeof(host), hint->url) == -1)
 		return -1; // Some failer that should have been caught eariler
 	lineLen = strlen(HEADER_HOST) + strlen(HEADER_BREAK) + strlen(host);
 	while (lineLen >= headerSize){
@@ -193,7 +220,11 @@ int sendHeader(int *sock, requestHint_t *hint){
 	return 1;
 }
 
-int domainFormURL(char* buff, size_t size, char *url){
+/*
+*	Puts the domain name from URL into buffer of size n.
+*	Returns -1 for failure
+*/
+int domainFormURL(char* buff, size_t n, char *url){
 	char * p;
 
 	// Serch for last part of domain name i.e www.google.com/
@@ -202,11 +233,32 @@ int domainFormURL(char* buff, size_t size, char *url){
 		fprintf(stderr, "Failed to seperate domain name from:\n%s\n", url);
 		return -1;
 	}
-	memset(buff, '\0', size);
+	
+	memset(buff, '\0', n);
 	memcpy(buff, url, p-url);
 	return 1;
 }
 
+/*
+*	Remove http and https from URL
+*	Return PROT_HTTP for http, PROT_HTTPS for https, -1 for failure
+*/
+int removeProtocol(char **url){
+	// Check if http or https
+	if (strstr(*url, HTTP) != NULL){
+		*url += sizeof(HTTP)-1;
+		return PROT_HTTP;
+	}
+	if (strstr(*url, HTTPS) != NULL){
+		*url += sizeof(HTTPS)-1;
+		return PROT_HTTPS;
+	}
+	return -1;
+}
+
+/*
+*	Connects to server using sock
+*/
 int connectToServer(int *sock, char *URL, int port){
 
 	struct sockaddr_in target;
@@ -214,7 +266,7 @@ int connectToServer(int *sock, char *URL, int port){
 	char domain[128];
 
 	// Get hosts domain name
-	if (domainFormURL(domain, sizeof(domain), URL)!=1){
+	if (domainFormURL(domain, sizeof(domain), URL)==-1){
 		return -1;
 	}
 
@@ -235,7 +287,7 @@ int connectToServer(int *sock, char *URL, int port){
 	// Clear target & set the address of outgoing message
 	memset(&target, 0, sizeof(struct sockaddr_in));
 	target.sin_family = hostIp->h_addrtype;
-	target.sin_port = htons(PORT);
+	target.sin_port = htons(port);
 	memcpy((char *)&target.sin_addr.s_addr,
 			hostIp->h_addr_list[0], hostIp->h_length);
 

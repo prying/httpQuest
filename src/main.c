@@ -16,6 +16,7 @@
 // default request type
 #define TYPE "GET"
 
+void usage(char * name);
 
 int main(int argc, char ** argv){
 	int opt;
@@ -31,8 +32,10 @@ int main(int argc, char ** argv){
 	request.argAccept = false;
 	request.paylaod = NULL;
 	request.silence = false;
+	request.immutable = false;
 
-	while((opt = getopt(argc, argv, "p:t:f:s"))!=-1){
+
+	while((opt = getopt(argc, argv, "p:t:f:si"))!=-1){
 		switch (opt)
 		{
 		case 'p': // Specified port
@@ -50,10 +53,13 @@ int main(int argc, char ** argv){
 			request.file = optarg;
 			request.allFile = true;
 		case 's': // Run silently TODO
-			printf("option s\n");
+			request.silence = true;
+			break;
+		case 'i': // Make input immutable
+			request.immutable = true;
 			break;
 		default: 
-		    fprintf(stderr, "Usage: %s [-p port] [-s] name\n",argv[0]);
+		    usage(argv[0]);
             exit(EXIT_FAILURE);
 		}
 	}
@@ -63,11 +69,17 @@ int main(int argc, char ** argv){
 		request.url = argv[optind];
 	} else {
 		fprintf(stderr, "Expected URL\n");
-		fprintf(stderr, "Usage: %s [-p port] [-s] name\n",argv[0]);
+		usage(argv[0]);
 		exit(EXIT_FAILURE);
 	}
 
 	tcpRequest(&request);
 
 	return 0;
+}
+
+void usage(char * name){
+	fprintf(stderr, "Usage: %s -[s|i] [-p port] [-f file] [-t type] [URL]\n", name);
+	fprintf(stderr, "\t-s\tSilence the output\n");
+	fprintf(stderr, "\t-i\tMake input immutable\n");
 }

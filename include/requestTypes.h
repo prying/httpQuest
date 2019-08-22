@@ -17,6 +17,8 @@ typedef struct
 	char *file;
 	char *paylaod;
 	bool silence;
+	// No edit
+	bool immutable;
 }requestHint_t;
 
 #endif
