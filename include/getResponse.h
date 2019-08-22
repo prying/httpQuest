@@ -1,10 +1,11 @@
 #ifndef GETWEATHER_H
 #define GETWEATHER_H
+#include "requestTypes.h"
 
 /*
 * Gets json file with weather data from specified address using a http request 
 */
-int printResponseTest(const char * address, const char * headder);
+int tcpRequest(requestHint_t *hint);
 
 
 #endif
